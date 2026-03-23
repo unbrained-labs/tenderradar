@@ -1,20 +1,29 @@
 # TenderRadar
 
-Swiss public procurement intelligence. Find simap.ch tenders before your competition does.
+Public procurement intelligence across Switzerland, EU, UK, and the US. Find tenders before your competition does.
 
 ## What it does
 
-- **Feed** — browse all active tenders from simap.ch with full-text and CPV/canton filters
-- **Matches** — tenders ranked by relevance to your company profile
-- **Tracker** — kanban board to manage your bid pipeline (New → Reviewing → Bid/No-Bid → Submitted)
-- **Profile** — set your CPV codes, cantons, keywords, and contract size range
+- **Feed** — browse active tenders from all connected sources, filterable by country, region, CPV code, keyword, deadline, and value
+- **Matches** — tenders ranked by relevance to your company profile (CPV codes + keywords + region)
+- **Tracker** — kanban board to manage your bid pipeline (New → Reviewing → Bid / No-Bid → Submitted)
+- **Profile** — set your CPV codes, target regions, keywords, and contract size range
+
+## Data Sources
+
+| Source | Coverage | API Key | Sync endpoint |
+|--------|----------|---------|---------------|
+| [simap.ch](https://www.simap.ch) | Switzerland (all cantons) | No | `POST /api/sync` |
+| [TED Europa](https://ted.europa.eu) | EU 27 + CH + NO + IS | No | `POST /api/sync/ted` |
+| [Find a Tender](https://www.find-tender.service.gov.uk) | United Kingdom | No | `POST /api/sync/fts` |
+| [SAM.gov](https://sam.gov) | US Federal | Yes (free, 1–4 days) | `POST /api/sync/sam` |
 
 ## Stack
 
 - **Next.js 14** (App Router, TypeScript)
 - **Neon Postgres** (serverless, `@neondatabase/serverless`)
-- **Tailwind CSS** (no component library dependencies)
-- **simap.ch REST API** (free, public)
+- **Tailwind CSS** (no component library)
+- **simap.ch, TED Europa, Find a Tender, SAM.gov** REST APIs
 
 ---
 
@@ -23,7 +32,8 @@ Swiss public procurement intelligence. Find simap.ch tenders before your competi
 ### 1. Clone and install
 
 ```bash
-cd rfp-finder
+git clone https://github.com/unbrained-labs/tenderradar.git
+cd tenderradar
 pnpm install
 ```
 
@@ -36,7 +46,7 @@ pnpm install
 
 ```bash
 cp .env.example .env.local
-# Edit .env.local and fill in DATABASE_URL
+# Edit .env.local — at minimum set DATABASE_URL
 ```
 
 ### 4. Run migrations
@@ -45,7 +55,7 @@ cp .env.example .env.local
 pnpm db:migrate
 ```
 
-This creates the `tenders`, `profile`, `tracked_tenders`, and `sync_log` tables.
+Creates `tenders`, `profile`, `tracked_tenders`, and `sync_log` tables.
 
 ### 5. Start the dev server
 
@@ -57,43 +67,39 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## First Run
+## First Sync
 
-### Verify the simap.ch API
+The nav bar shows per-source sync buttons: **CH / EU / UK / US**.
 
-The API client in `lib/simap.ts` is built on documented patterns, but field names
-need to be verified against the live API before the first sync works correctly.
-
-**Run this curl to see the real response shape:**
+Or hit the endpoints directly:
 
 ```bash
-curl "https://www.simap.ch/api/publications/?page_size=3" | jq .
-```
-
-Compare the response to the `SimapPublication` interface in `lib/simap.ts`.
-The most likely fields to need adjustment:
-
-| Our field | Check this |
-|---|---|
-| `contracting_authority.name` | May be `authority_name` or `contracting_body.name` |
-| `deadline_submission` | May be `submission_deadline` or `closing_date` |
-| `estimated_value_from/to` | May be `estimated_value` as a single field |
-| `cpv_codes` | May be `cpv_code` (singular) or an object `{code, label}` |
-| `canton` | May be `place_of_performance` or inside the authority object |
-
-The `normalizeTender()` function in `lib/simap.ts` handles the transformation.
-Edit it to match the real API shape.
-
-### Trigger a sync
-
-Click **Sync** in the nav bar, or hit the endpoint directly:
-
-```bash
+# Switzerland (simap.ch)
 curl -X POST http://localhost:3000/api/sync
+
+# EU (TED Europa)
+curl -X POST http://localhost:3000/api/sync/ted
+
+# UK (Find a Tender)
+curl -X POST http://localhost:3000/api/sync/fts
+
+# US (SAM.gov — requires SAM_GOV_API_KEY in .env.local)
+curl -X POST http://localhost:3000/api/sync/sam
 ```
 
-The first sync fetches the last 30 days of publications. Subsequent syncs
-fetch only since the last successful sync.
+Each sync fetches the last 30 days of open tenders and upserts them into the `tenders` table.
+
+---
+
+## SAM.gov Setup
+
+SAM.gov requires a free API key that takes 1–4 business days to activate:
+
+1. Register your entity at [sam.gov](https://sam.gov/content/entity-registration)
+2. Generate an API key in your account settings
+3. Add to `.env.local`: `SAM_GOV_API_KEY=your_key_here`
+
+Until the key is set, the US sync returns a 503 with instructions.
 
 ---
 
@@ -101,70 +107,58 @@ fetch only since the last successful sync.
 
 ```
 app/
-  page.tsx              Feed (main tender list)
-  tender/[id]/          Tender detail + Add to Tracker button
-  matches/              Profile-matched tenders with relevance scores
-  tracker/              Kanban board
-  profile/              Company profile setup
+  page.tsx                  Feed (main tender list)
+  tender/[id]/              Tender detail + Add to Tracker button
+  matches/                  Profile-matched tenders with relevance scores
+  tracker/                  Kanban board
+  profile/                  Company profile setup
   api/
-    sync/               POST — fetch from simap.ch, upsert to DB
-    tenders/            GET — list tenders with filters
-    tenders/[id]/       GET — single tender
-    profile/            GET + PUT — company profile
-    tracker/            GET + POST — tracked tenders list
-    tracker/[id]/       PATCH + DELETE — update/remove tracked tender
+    sync/                   POST — sync simap.ch (Switzerland)
+    sync/ted/               POST — sync TED Europa (EU)
+    sync/fts/               POST — sync Find a Tender (UK)
+    sync/sam/               POST — sync SAM.gov (US)
+    tenders/                GET — list tenders with filters
+    tenders/[id]/           GET — single tender
+    profile/                GET + PUT — company profile
+    tracker/                GET + POST — tracked tenders list
+    tracker/[id]/           PATCH + DELETE — update/remove tracked tender
 
 components/
-  nav.tsx               Sticky header with nav + sync button
-  tender-card.tsx       Row and card variants for tender display
-  tender-filters.tsx    Search + canton/CPV/value filter panel
-  deadline-badge.tsx    Deadline with urgency colouring
-  cpv-badge.tsx         CPV code pill with label
-  tracker-board.tsx     Drag-and-drop kanban board
+  nav.tsx                   Sticky header with per-source sync buttons
+  tender-card.tsx           Row/card variants for tender display
+  tender-filters.tsx        Search + country/region/CPV/value filter panel
+  deadline-badge.tsx        Deadline with urgency colouring
+  cpv-badge.tsx             CPV code pill with label
+  tracker-board.tsx         Drag-and-drop kanban board
 
 lib/
-  db.ts                 Neon database connection
-  schema.sql            Full Postgres schema (run once)
-  simap.ts              simap.ch API client + normalizer
-  cantons.ts            Swiss canton data (26 cantons)
-  cpv-codes.ts          CPV code dictionary (~100 key codes)
-  types.ts              Shared TypeScript types
-  utils.ts              Formatting helpers (dates, currency, etc.)
+  db.ts                     Neon database connection (lazy singleton + rawQuery helper)
+  schema.sql                Full Postgres schema (run once via pnpm db:migrate)
+  simap.ts                  simap.ch API client + normalizer
+  ted.ts                    TED Europa API client + normalizer
+  fts.ts                    Find a Tender (UK) API client + normalizer
+  sam.ts                    SAM.gov API client + normalizer
+  cantons.ts                Swiss canton data (26 cantons, with alpine subset)
+  cpv-codes.ts              CPV code dictionary (~100 key codes across 16 divisions)
+  types.ts                  Shared TypeScript types
+  utils.ts                  Formatting helpers (dates, currency, etc.)
 ```
 
 ---
 
 ## Matching Logic
 
-The Matches page uses a simple scoring model:
+The Matches page scores tenders against your company profile:
 
 | Signal | Weight |
-|---|---|
-| CPV division match (e.g., 45xx for construction) | +0.15 per match, capped at 0.50 |
-| Canton match | +0.30 |
-| Keyword match in title/description | +0.05 per keyword, capped at 0.20 |
+|--------|--------|
+| CPV division match (e.g. 45xx = construction) | +0.15 per match, capped at 0.50 |
+| Region match (canton / country) | +0.30 |
+| Keyword match in title or description | +0.05 per keyword, capped at 0.20 |
 
-Results with score = 0 are not shown. Scores are displayed as a percentage bar.
+Results with score = 0 are not shown. Scores display as a percentage bar.
 
-This is Level 1 matching (keywords + codes). The research doc (RESEARCH.md)
-describes the roadmap to Level 3 (semantic embeddings with pgvector).
-
----
-
-## Adding More Data Sources
-
-To add TED Europa (EU procurement, free):
-
-1. Register for a free EU Login API key at [api.ted.europa.eu](https://api.ted.europa.eu)
-2. Create `lib/ted.ts` following the same pattern as `lib/simap.ts`
-3. Add a `/api/sync/ted` route
-4. The canonical schema already handles multi-source tenders (the `source` field)
-
-To add SAM.gov (US federal, free):
-
-1. Register at [sam.gov](https://sam.gov) for an API key (takes 1-4 weeks)
-2. API docs: [open.gsa.gov/api/get-opportunities-public-api](https://open.gsa.gov/api/get-opportunities-public-api/)
-3. Create `lib/sam.ts` + `/api/sync/sam`
+This is Level 1 matching. `RESEARCH.md` covers the roadmap to Level 3 (semantic embeddings with pgvector).
 
 ---
 
@@ -172,76 +166,62 @@ To add SAM.gov (US federal, free):
 
 ### Fly.io (recommended)
 
-A `Dockerfile` and `fly.toml` are included.
+A `Dockerfile` and `fly.toml` are included. Default region is `cdg` (Paris — closest to Switzerland). Scales to zero when idle.
 
 ```bash
-# Install flyctl: https://fly.io/docs/hands-on/install-flyctl/
 fly auth login
-
-# First deploy — picks up fly.toml, creates the app
 fly launch --no-deploy
 
-# Set secrets (never commit these)
 fly secrets set DATABASE_URL="your-neon-connection-string"
 fly secrets set CRON_SECRET="your-random-secret"
+# If using SAM.gov:
+fly secrets set SAM_GOV_API_KEY="your-sam-key"
 
-# Deploy
 fly deploy
 ```
 
-The app runs in Paris (`cdg`) by default — closest region to Switzerland.
-Scales to zero when idle, spins up on request (cold start ~1s).
+Tail logs: `fly logs` | SSH: `fly ssh console`
 
-To tail logs: `fly logs`
-To SSH in: `fly ssh console`
+### Cloudflare (as proxy in front of Fly.io)
 
-### Cloudflare Pages
-
-Cloudflare Pages supports Next.js via the `@cloudflare/next-on-pages` adapter,
-but it runs in the **edge runtime** which has restrictions:
-- No Node.js built-ins (some Neon operations may need polyfills)
-- Neon's `@neondatabase/serverless` works fine on edge (it uses `fetch` under the hood)
-
-```bash
-pnpm add -D @cloudflare/next-on-pages wrangler
-
-# Add to next.config.mjs:
-# import { setupDevPlatform } from '@cloudflare/next-on-pages/next-dev'
-
-# Build for Cloudflare
-pnpm exec next-on-pages
-
-# Deploy
-wrangler pages deploy .vercel/output/static
-```
-
-Set `DATABASE_URL` and `CRON_SECRET` in the Cloudflare Pages dashboard
-under Settings → Environment Variables.
-
-> **Simpler option**: use Cloudflare as your DNS/proxy in front of Fly.io.
-> Point your domain to the Fly.io app, enable the Cloudflare proxy (orange cloud).
-> You get Cloudflare's CDN, DDoS protection, and SSL for free with zero adapter complexity.
+Point your domain to the Fly.io app and enable the Cloudflare proxy (orange cloud). You get CDN, DDoS protection, and SSL with zero adapter complexity — no need to run on Cloudflare Workers.
 
 ---
 
-## Roadmap (from RESEARCH.md)
+## Roadmap
 
-- [ ] TED Europa integration (EU + Swiss above-threshold tenders)
+- [x] simap.ch integration (Switzerland)
+- [x] TED Europa integration (EU 27 + CH)
+- [x] Find a Tender integration (UK)
+- [x] SAM.gov integration (US federal)
 - [ ] Addenda/amendment detection (hash-based change tracking)
 - [ ] Deadline email alerts (T-14, T-7, T-3)
-- [ ] Multilingual search (DeepL translation of FR/IT tender summaries)
+- [ ] Multilingual search (DeepL translation of FR/IT/DE tender summaries)
 - [ ] Semantic matching (pgvector embeddings)
-- [ ] Austrian portal integration (auftrag.at)
-- [ ] SAM.gov integration (US federal)
+- [ ] Austrian portal — auftrag.at
 - [ ] Slack/webhook notifications
 - [ ] Win/loss history for bid scoring
 
 ---
 
-## simap.ch API Notes
+## API Notes
 
+### simap.ch
 - Base URL: `https://www.simap.ch/api`
-- Spec changelog: `https://www.simap.ch/api/specifications/changelog.html`
-- No API key needed for public publication data
-- Rate limit: generous for unauthenticated access; register for higher limits
-- Tenders published in DE/FR/IT depending on issuing canton
+- Two-step: search (`/publications/v2/project/project-search`) + detail (`/publications/v1/project/{id}/publication-details/{pubId}`)
+- No API key needed. Tenders published in DE/FR/IT by issuing canton.
+
+### TED Europa
+- Base URL: `https://api.ted.europa.eu/v3`
+- POST search with expert query syntax: `notice-type = cn-standard AND publication-date >= 20260101`
+- No API key needed. Multilingual fields use ISO 639-2 language codes.
+
+### Find a Tender (UK)
+- Base URL: `https://www.find-tender.service.gov.uk/api/1.0`
+- OCDS format, cursor-based pagination
+- No API key needed.
+
+### SAM.gov (US)
+- Base URL: `https://api.sam.gov/opportunities/v2`
+- Free API key required (1–4 day activation)
+- Filters for `ptype=o,k` (solicitations + combined synopsis) and `active=Yes`

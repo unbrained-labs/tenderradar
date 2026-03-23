@@ -29,9 +29,9 @@ export default function TenderCard({ tender, variant = "row", showMatch = false 
           {/* Top row */}
           <div className="flex items-start justify-between gap-3 mb-3">
             <div className="flex items-center gap-2 min-w-0">
-              {tender.issuer_canton && (
+              {tender.issuer_region && (
                 <span className="mono text-xs px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 shrink-0">
-                  {tender.issuer_canton}
+                  {tender.issuer_region}
                 </span>
               )}
               <span className="text-xs text-zinc-500 truncate mono">{tender.issuer_name}</span>
@@ -73,9 +73,9 @@ export default function TenderCard({ tender, variant = "row", showMatch = false 
     <tr className="group hover:bg-zinc-900/50 transition-colors cursor-pointer animate-fade-in">
       <td className="py-3 px-4">
         <div className="flex items-center gap-2">
-          {tender.issuer_canton && (
+          {tender.issuer_region && (
             <span className="mono text-xs px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 shrink-0">
-              {tender.issuer_canton}
+              {tender.issuer_region}
             </span>
           )}
           <Link

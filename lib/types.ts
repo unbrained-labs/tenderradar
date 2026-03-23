@@ -21,7 +21,8 @@ export interface Tender {
   title: string;
   description: string | null;
   issuer_name: string;
-  issuer_canton: string | null;
+  issuer_country: string | null;
+  issuer_region: string | null;
   cpv_codes: string[];
   posted_date: string;
   response_deadline: string | null;

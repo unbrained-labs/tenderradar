@@ -216,9 +216,9 @@ function KanbanCard({
       {/* Issuer */}
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-1.5 min-w-0">
-          {tender?.issuer_canton && (
+          {tender?.issuer_region && (
             <span className="mono text-xs px-1 py-0.5 rounded bg-zinc-800 text-zinc-500 shrink-0">
-              {tender.issuer_canton}
+              {tender.issuer_region}
             </span>
           )}
           <span className="text-xs text-zinc-500 truncate mono">{tender?.issuer_name ?? "—"}</span>

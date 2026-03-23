@@ -63,7 +63,7 @@ export default async function MatchesPage() {
   // Canton match
   if (cantons.length > 0) {
     const list = cantons.map(() => `$${p++}`).join(", ");
-    orConditions.push(`t.issuer_canton IN (${list})`);
+    orConditions.push(`t.issuer_region IN (${list})`);
     values.push(...cantons);
   }
 
@@ -93,7 +93,7 @@ export default async function MatchesPage() {
   const where = conditions.join(" AND ");
 
   const dataRows = await rawQuery<Record<string, unknown>>(
-    `SELECT id, source_id, title, description, issuer_name, issuer_canton,
+    `SELECT id, source_id, title, description, issuer_name, issuer_region,
             cpv_codes, posted_date, response_deadline,
             estimated_value_min, estimated_value_max, currency,
             status, source_url, attachments, contacts, created_at, updated_at
@@ -127,9 +127,9 @@ export default async function MatchesPage() {
     }
 
     // Canton match (+0.3)
-    if (row.issuer_canton && cantons.includes(String(row.issuer_canton))) {
+    if (row.issuer_region && cantons.includes(String(row.issuer_region))) {
       score += 0.3;
-      reasons.push(`Canton match: ${row.issuer_canton}`);
+      reasons.push(`Canton match: ${row.issuer_region}`);
     }
 
     // Keyword match (+0.1 per keyword hit)

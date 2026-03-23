@@ -190,7 +190,7 @@ export function normalizeFtsRelease(release: FtsRelease) {
       ? tender.description.replace(/<[^>]+>/g, " ").trim()
       : null,
     issuer_name: buyer?.name ?? release.buyer?.name ?? "Unknown",
-    issuer_canton: null,
+    issuer_region: null,
     issuer_country: "GB",
     cpv_codes: cpvCodes,
     posted_date: release.date?.split("T")[0] ?? null,

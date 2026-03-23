@@ -9,7 +9,7 @@ export default async function TrackerPage() {
     SELECT
       tr.id, tr.tender_id, tr.status, tr.notes, tr.assigned_to,
       tr.created_at, tr.updated_at,
-      t.id as t_id, t.title, t.issuer_name, t.issuer_canton,
+      t.id as t_id, t.title, t.issuer_name, t.issuer_region,
       t.cpv_codes, t.response_deadline,
       t.estimated_value_min, t.estimated_value_max, t.currency,
       t.source_url, t.status as tender_status
@@ -32,7 +32,7 @@ export default async function TrackerPage() {
       title:            String(row.title ?? ""),
       description:      null,
       issuer_name:      String(row.issuer_name ?? ""),
-      issuer_canton:    row.issuer_canton ? String(row.issuer_canton) : null,
+      issuer_region:    row.issuer_region ? String(row.issuer_region) : null,
       cpv_codes:        Array.isArray(row.cpv_codes) ? row.cpv_codes as string[] : [],
       posted_date:      "",
       response_deadline: row.response_deadline ? String(row.response_deadline) : null,

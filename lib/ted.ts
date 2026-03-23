@@ -211,7 +211,7 @@ export function normalizeTedNotice(notice: TedNotice) {
     title: title.trim(),
     description,
     issuer_name: issuerName,
-    issuer_canton: null,       // EU tenders use country, not canton
+    issuer_region: null,       // EU tenders use country, not canton
     issuer_country: countryAlpha2,
     cpv_codes: cpvCodes,
     posted_date: notice["publication-date"]?.split("+")[0]?.split("Z")[0] ?? null,

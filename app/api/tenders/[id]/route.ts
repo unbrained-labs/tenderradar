@@ -11,7 +11,7 @@ export async function GET(
   try {
     const rows = await sql`
       SELECT
-        id, source_id, title, description, issuer_name, issuer_canton,
+        id, source_id, title, description, issuer_name, issuer_region,
         cpv_codes, posted_date, response_deadline,
         estimated_value_min, estimated_value_max, currency,
         status, source_url, attachments, contacts,
@@ -32,7 +32,7 @@ export async function GET(
       title:            String(row.title ?? ""),
       description:      row.description ? String(row.description) : null,
       issuer_name:      String(row.issuer_name ?? ""),
-      issuer_canton:    row.issuer_canton ? String(row.issuer_canton) : null,
+      issuer_region:    row.issuer_region ? String(row.issuer_region) : null,
       cpv_codes:        Array.isArray(row.cpv_codes) ? row.cpv_codes as string[] : [],
       posted_date:      String(row.posted_date ?? ""),
       response_deadline:row.response_deadline ? String(row.response_deadline) : null,

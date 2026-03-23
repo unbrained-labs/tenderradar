@@ -206,7 +206,7 @@ export function normalizeSamOpportunity(opp: SamOpportunity) {
       ? opp.description.replace(/<[^>]+>/g, " ").trim()
       : null,
     issuer_name: opp.fullParentPathName?.split(".")?.slice(-1)[0] ?? "US Government",
-    issuer_canton: state,
+    issuer_region: state,
     issuer_country: country === "USA" ? "US" : country,
     cpv_codes: cpvCodes,
     posted_date: parseSamDate(opp.postedDate),

@@ -70,7 +70,7 @@ async function TenderTable({
 
   if (cantons.length > 0) {
     const list = cantons.map(() => `$${p++}`).join(", ");
-    conditions.push(`t.issuer_canton IN (${list})`);
+    conditions.push(`t.issuer_region IN (${list})`);
     values.push(...cantons);
   }
 
@@ -100,7 +100,7 @@ async function TenderTable({
   const [countRows, dataRows] = await Promise.all([
     rawQuery<{ total: string }>(`SELECT COUNT(*) as total FROM tenders t WHERE ${where}`, values),
     rawQuery<Record<string, unknown>>(
-      `SELECT id, source_id, title, description, issuer_name, issuer_canton,
+      `SELECT id, source_id, title, description, issuer_name, issuer_region,
               cpv_codes, posted_date, response_deadline,
               estimated_value_min, estimated_value_max, currency,
               status, source_url, attachments, contacts, created_at, updated_at

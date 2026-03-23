@@ -28,15 +28,16 @@ async function run(req: NextRequest) {
 
     let upserted = 0;
     for (const t of tenders) {
+      // issuer_region holds US state code (CA, TX...), issuer_country = US
       await sql`
         INSERT INTO tenders (
-          source_id, title, description, issuer_name, issuer_canton,
+          source_id, title, description, issuer_name, issuer_country, issuer_region,
           cpv_codes, posted_date, response_deadline,
           estimated_value_min, estimated_value_max, currency,
           status, source_url, attachments, contacts, raw
         ) VALUES (
           ${t.source_id}, ${t.title}, ${t.description},
-          ${t.issuer_name}, ${t.issuer_canton ?? null},
+          ${t.issuer_name}, ${"US"}, ${t.issuer_region ?? null},
           ${JSON.stringify(t.cpv_codes)}, ${t.posted_date}, ${t.response_deadline},
           ${t.estimated_value_min}, ${t.estimated_value_max}, ${t.currency},
           ${t.status}, ${t.source_url},
@@ -47,7 +48,8 @@ async function run(req: NextRequest) {
           title             = EXCLUDED.title,
           description       = EXCLUDED.description,
           issuer_name       = EXCLUDED.issuer_name,
-          issuer_canton     = EXCLUDED.issuer_canton,
+          issuer_country    = EXCLUDED.issuer_country,
+          issuer_region     = EXCLUDED.issuer_region,
           cpv_codes         = EXCLUDED.cpv_codes,
           response_deadline = EXCLUDED.response_deadline,
           status            = EXCLUDED.status,

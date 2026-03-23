@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS tenders (
   title           TEXT NOT NULL,
   description     TEXT,
   issuer_name     TEXT NOT NULL DEFAULT '',
-  issuer_canton   VARCHAR(4),                   -- CH canton (GR, ZH) or country (GB, US, FR, DE...)
+  issuer_country  CHAR(2),                      -- ISO 3166-1 alpha-2 (CH, GB, US, FR, DE...)
+  issuer_region   VARCHAR(10),                  -- sub-national region: CH canton (GR, ZH), US state (CA, TX), UK region (UKJ14)...
   cpv_codes       JSONB NOT NULL DEFAULT '[]',  -- ["45221200", "72200000"]
   posted_date     TIMESTAMPTZ,
   response_deadline TIMESTAMPTZ,
@@ -34,7 +35,8 @@ CREATE TABLE IF NOT EXISTS tenders (
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_tenders_status          ON tenders (status);
-CREATE INDEX IF NOT EXISTS idx_tenders_canton          ON tenders (issuer_canton);
+CREATE INDEX IF NOT EXISTS idx_tenders_country         ON tenders (issuer_country);
+CREATE INDEX IF NOT EXISTS idx_tenders_region          ON tenders (issuer_region);
 CREATE INDEX IF NOT EXISTS idx_tenders_deadline        ON tenders (response_deadline);
 CREATE INDEX IF NOT EXISTS idx_tenders_posted          ON tenders (posted_date DESC);
 CREATE INDEX IF NOT EXISTS idx_tenders_cpv_codes       ON tenders USING gin (cpv_codes);

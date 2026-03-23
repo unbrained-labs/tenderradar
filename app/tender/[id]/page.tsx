@@ -18,7 +18,7 @@ export default async function TenderDetailPage({
 }) {
   const rows = await sql`
     SELECT
-      id, source_id, title, description, issuer_name, issuer_canton,
+      id, source_id, title, description, issuer_name, issuer_region,
       cpv_codes, posted_date, response_deadline,
       estimated_value_min, estimated_value_max, currency,
       status, source_url, attachments, contacts,
@@ -37,7 +37,7 @@ export default async function TenderDetailPage({
     title:            String(row.title ?? ""),
     description:      row.description ? String(row.description) : null,
     issuer_name:      String(row.issuer_name ?? ""),
-    issuer_canton:    row.issuer_canton ? String(row.issuer_canton) : null,
+    issuer_region:    row.issuer_region ? String(row.issuer_region) : null,
     cpv_codes:        Array.isArray(row.cpv_codes) ? row.cpv_codes as string[] : [],
     posted_date:      String(row.posted_date ?? ""),
     response_deadline:row.response_deadline ? String(row.response_deadline) : null,
@@ -68,9 +68,9 @@ export default async function TenderDetailPage({
       <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex items-center gap-2 flex-wrap">
-            {tender.issuer_canton && (
+            {tender.issuer_region && (
               <span className="mono text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-400 font-medium">
-                {tender.issuer_canton} — {getCantonName(tender.issuer_canton)}
+                {tender.issuer_region} — {getCantonName(tender.issuer_region)}
               </span>
             )}
             <StatusChip status={tender.status} />

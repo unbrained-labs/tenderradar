@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 
     if (cantons.length > 0) {
       const placeholders = cantons.map(() => `$${paramIdx++}`).join(", ");
-      conditions.push(`t.issuer_canton IN (${placeholders})`);
+      conditions.push(`t.issuer_region IN (${placeholders})`);
       values.push(...cantons);
     }
 
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
 
     const dataRows = await rawQuery<Record<string, unknown>>(
       `SELECT
-         id, source_id, title, description, issuer_name, issuer_canton,
+         id, source_id, title, description, issuer_name, issuer_region,
          cpv_codes, posted_date, response_deadline,
          estimated_value_min, estimated_value_max, currency,
          status, source_url, attachments, contacts,
@@ -112,7 +112,7 @@ function normalizeRow(row: Record<string, unknown>): Tender {
     title:            String(row.title ?? ""),
     description:      row.description ? String(row.description) : null,
     issuer_name:      String(row.issuer_name ?? ""),
-    issuer_canton:    row.issuer_canton ? String(row.issuer_canton) : null,
+    issuer_region:    row.issuer_region ? String(row.issuer_region) : null,
     cpv_codes:        Array.isArray(row.cpv_codes) ? row.cpv_codes as string[] : [],
     posted_date:      String(row.posted_date ?? ""),
     response_deadline:row.response_deadline ? String(row.response_deadline) : null,

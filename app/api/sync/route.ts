@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     for (const t of tenders) {
       await sql`
         INSERT INTO tenders (
-          source_id, title, description, issuer_name, issuer_canton,
+          source_id, title, description, issuer_name, issuer_country, issuer_region,
           cpv_codes, posted_date, response_deadline,
           estimated_value_min, estimated_value_max, currency,
           status, source_url, attachments, contacts, raw
@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
           ${t.title},
           ${t.description},
           ${t.issuer_name},
-          ${t.issuer_canton},
+          ${t.issuer_country},
+          ${t.issuer_region},
           ${JSON.stringify(t.cpv_codes)},
           ${t.posted_date},
           ${t.response_deadline},
@@ -54,7 +55,8 @@ export async function POST(req: NextRequest) {
           title              = EXCLUDED.title,
           description        = EXCLUDED.description,
           issuer_name        = EXCLUDED.issuer_name,
-          issuer_canton      = EXCLUDED.issuer_canton,
+          issuer_country     = EXCLUDED.issuer_country,
+          issuer_region      = EXCLUDED.issuer_region,
           cpv_codes          = EXCLUDED.cpv_codes,
           response_deadline  = EXCLUDED.response_deadline,
           status             = EXCLUDED.status,

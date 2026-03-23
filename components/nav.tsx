@@ -14,27 +14,31 @@ const NAV_ITEMS = [
 
 export default function Nav() {
   const pathname = usePathname();
-  const [syncing, setSyncing] = useState(false);
+  const [syncing, setSyncing] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<string | null>(null);
 
-  async function handleSync() {
-    setSyncing(true);
+  const SOURCES = [
+    { id: "simap",  label: "CH",  endpoint: "/api/sync" },
+    { id: "ted",    label: "EU",  endpoint: "/api/sync/ted" },
+    { id: "fts",    label: "UK",  endpoint: "/api/sync/fts" },
+    { id: "sam",    label: "US",  endpoint: "/api/sync/sam" },
+  ];
+
+  async function handleSync(sourceId: string, endpoint: string) {
+    setSyncing(sourceId);
     try {
-      const res = await fetch("/api/sync", {
-        method: "POST",
-        headers: {
-          "x-cron-secret": process.env.NEXT_PUBLIC_CRON_SECRET ?? "",
-        },
-      });
+      const res = await fetch(endpoint, { method: "POST" });
       const data = await res.json();
       if (data.upserted !== undefined) {
-        setLastSync(`↑ ${data.upserted} new`);
+        setLastSync(`${sourceId.toUpperCase()} ↑${data.upserted}`);
+      } else if (data.error) {
+        setLastSync(`${sourceId.toUpperCase()}: ${data.error.slice(0, 40)}`);
       }
     } catch {
       setLastSync("Error");
     } finally {
-      setSyncing(false);
-      setTimeout(() => setLastSync(null), 5000);
+      setSyncing(null);
+      setTimeout(() => setLastSync(null), 6000);
     }
   }
 
@@ -88,43 +92,44 @@ export default function Nav() {
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Sync button */}
-          <div className="flex items-center gap-3">
+          {/* Sync controls */}
+          <div className="flex items-center gap-2">
             {lastSync && (
-              <span className="mono text-xs text-amber-400 animate-fade-in">
+              <span className="font-mono text-xs text-amber-400">
                 {lastSync}
               </span>
             )}
-            <button
-              onClick={handleSync}
-              disabled={syncing}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono font-medium border transition-all",
-                syncing
-                  ? "border-amber-500/30 text-amber-400/50 cursor-not-allowed"
-                  : "border-zinc-700 text-zinc-400 hover:border-amber-500/50 hover:text-amber-400"
-              )}
-            >
-              <svg
-                viewBox="0 0 16 16"
-                fill="none"
-                className={cn("w-3.5 h-3.5", syncing && "animate-spin")}
-              >
-                <path
-                  d="M13.5 8A5.5 5.5 0 1 1 8 2.5M13.5 2.5V6H10"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              {syncing ? "Syncing…" : "Sync"}
-            </button>
+            <div className="flex items-center gap-1 border border-zinc-800 rounded-md p-0.5">
+              {SOURCES.map((src) => (
+                <button
+                  key={src.id}
+                  onClick={() => handleSync(src.id, src.endpoint)}
+                  disabled={syncing !== null}
+                  title={`Sync ${src.label}`}
+                  className={cn(
+                    "flex items-center gap-1 px-2 py-1 rounded text-xs font-mono font-medium transition-all",
+                    syncing === src.id
+                      ? "bg-amber-500/10 text-amber-400"
+                      : syncing !== null
+                      ? "text-zinc-600 cursor-not-allowed"
+                      : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                  )}
+                >
+                  {syncing === src.id && (
+                    <svg viewBox="0 0 16 16" fill="none" className="w-3 h-3 animate-spin">
+                      <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5M13.5 2.5V6H10"
+                        stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                  {src.label}
+                </button>
+              ))}
+            </div>
 
             {/* Status dot */}
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-green-500 radar-pulse" />
-              <span className="mono text-xs text-zinc-500">live</span>
+              <span className="font-mono text-xs text-zinc-500">live</span>
             </div>
           </div>
         </div>

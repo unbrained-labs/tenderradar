@@ -11,11 +11,11 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm"; -- for full-text search
 -- ============================================================
 CREATE TABLE IF NOT EXISTS tenders (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  source_id       TEXT NOT NULL UNIQUE,         -- simap.ch or TED notice ID
+  source_id       TEXT NOT NULL UNIQUE,         -- prefix:id e.g. simap-123, ted-456-2026, fts-ocid, sam-uuid
   title           TEXT NOT NULL,
   description     TEXT,
   issuer_name     TEXT NOT NULL DEFAULT '',
-  issuer_canton   CHAR(2),                      -- e.g. 'GR', 'ZH', 'TI'
+  issuer_canton   VARCHAR(4),                   -- CH canton (GR, ZH) or country (GB, US, FR, DE...)
   cpv_codes       JSONB NOT NULL DEFAULT '[]',  -- ["45221200", "72200000"]
   posted_date     TIMESTAMPTZ,
   response_deadline TIMESTAMPTZ,

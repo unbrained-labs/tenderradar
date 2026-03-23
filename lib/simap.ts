@@ -19,6 +19,9 @@
  * We only care about: "tender" and "participant_selection" (active open tenders)
  */
 
+import { stripHtml } from "@/lib/utils";
+import type { NormalizedTender } from "@/lib/types";
+
 const BASE_URL = process.env.SIMAP_BASE_URL ?? "https://www.simap.ch/api";
 
 // ─── Search result (lightweight) ─────────────────────────────────────────────
@@ -184,7 +187,7 @@ function pickText(obj: Record<string, string | null> | null | undefined): string
 export function normalizeTender(
   project: SimapProject,
   detail: SimapPublicationDetail
-) {
+): NormalizedTender {
   const info = detail["project-info"];
   const proc = detail.procurement;
   const dates = detail.dates;
@@ -245,7 +248,7 @@ export function normalizeTender(
   return {
     source_id: `simap-${project.publicationId}`,
     title: title.trim(),
-    description: description ? description.replace(/<[^>]+>/g, " ").trim() : null,
+    description: stripHtml(description),
     issuer_name: issuerName,
     issuer_country: "CH",
     issuer_region: canton?.toUpperCase().slice(0, 2) ?? null,
@@ -275,9 +278,9 @@ export async function fetchAllOpenTenders(options: {
   maxPages?: number;
   pageSize?: number;
   delayMs?: number;
-}): Promise<ReturnType<typeof normalizeTender>[]> {
+}): Promise<NormalizedTender[]> {
   const { maxPages = 20, pageSize = 50, delayMs = 300 } = options;
-  const normalized: ReturnType<typeof normalizeTender>[] = [];
+  const normalized: NormalizedTender[] = [];
 
   let page = 0;
   let fetched = 0;

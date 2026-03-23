@@ -24,7 +24,12 @@
  * Notice URL pattern: https://ted.europa.eu/en/notice/{publication-number}/html
  */
 
+import { stripHtml, daysAgo } from "@/lib/utils";
+import type { NormalizedTender } from "@/lib/types";
+
 const BASE_URL = process.env.TED_BASE_URL ?? "https://api.ted.europa.eu/v3";
+
+const OPEN_TENDER_NOTICE_TYPES = ["cn-standard", "cn-social"] as const;
 
 // ─── Response types ───────────────────────────────────────────────────────────
 
@@ -131,7 +136,7 @@ export async function searchTedNotices(params: {
 
   // Build expert query
   const clauses: string[] = [
-    "notice-type = cn-standard OR notice-type = cn-social",
+    OPEN_TENDER_NOTICE_TYPES.map((t) => `notice-type = ${t}`).join(" OR "),
   ];
 
   if (fromDate) {
@@ -169,7 +174,7 @@ export async function searchTedNotices(params: {
 
 // ─── Normalizer ───────────────────────────────────────────────────────────────
 
-export function normalizeTedNotice(notice: TedNotice) {
+export function normalizeTedNotice(notice: TedNotice): NormalizedTender {
   const pubNum = notice["publication-number"];
 
   // Title
@@ -179,9 +184,7 @@ export function normalizeTedNotice(notice: TedNotice) {
   const descRaw =
     pickMultiLang(notice["description-lot"]) ??
     pickMultiLang(notice["description-part"]);
-  const description = descRaw
-    ? descRaw.replace(/<[^>]+>/g, " ").trim()
-    : null;
+  const description = stripHtml(descRaw);
 
   // Issuer
   const issuerName = pickMultiLang(notice["organisation-name-buyer"]) ?? "Unknown";
@@ -214,7 +217,9 @@ export function normalizeTedNotice(notice: TedNotice) {
     issuer_region: null,       // EU tenders use country, not canton
     issuer_country: countryAlpha2,
     cpv_codes: cpvCodes,
-    posted_date: notice["publication-date"]?.split("+")[0]?.split("Z")[0] ?? null,
+    posted_date: notice["publication-date"]
+      ? new Date(notice["publication-date"]).toISOString().slice(0, 10)
+      : null,
     response_deadline: deadlineRaw ?? null,
     estimated_value_min: valueRaw,
     estimated_value_max: valueRaw,
@@ -223,7 +228,8 @@ export function normalizeTedNotice(notice: TedNotice) {
     source_url: sourceUrl,
     attachments: [],
     contacts: [],
-    raw: notice,
+    // Strip links blob (24 languages × 2 formats = ~50 URLs, ~4KB, never queried)
+    raw: { ...notice, links: undefined },
   };
 }
 
@@ -236,23 +242,17 @@ export async function fetchAllOpenTedNotices(options: {
   pageSize?: number;
   delayMs?: number;
   fromDate?: Date;
-}): Promise<ReturnType<typeof normalizeTedNotice>[]> {
+}): Promise<NormalizedTender[]> {
   const { maxPages = 20, pageSize = 50, delayMs = 300 } = options;
-
-  // Default: last 30 days
-  const fromDate = options.fromDate ?? (() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 30);
-    return d;
-  })();
-
-  const normalized: ReturnType<typeof normalizeTedNotice>[] = [];
+  const fromDate = options.fromDate ?? daysAgo(30);
+  const normalized: NormalizedTender[] = [];
   let page = 1;
 
   while (page <= maxPages) {
     const result = await searchTedNotices({
-      ...options,
       fromDate,
+      countries: options.countries,
+      cpvPrefix: options.cpvPrefix,
       page,
       limit: pageSize,
     });
@@ -270,7 +270,6 @@ export async function fetchAllOpenTedNotices(options: {
 
     if (notices.length < pageSize) break;
     page++;
-
     if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
   }
 

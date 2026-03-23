@@ -61,6 +61,18 @@ export function truncate(str: string | null, length = 160): string {
   return str.slice(0, length).trimEnd() + "…";
 }
 
+export function stripHtml(html: string | null | undefined): string | null {
+  if (!html) return null;
+  const stripped = html.replace(/<[^>]+>/g, " ").trim();
+  return stripped || null;
+}
+
+export function daysAgo(n: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d;
+}
+
 export function slugify(str: string): string {
   return str
     .toLowerCase()

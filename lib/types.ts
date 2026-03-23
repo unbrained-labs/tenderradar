@@ -60,6 +60,27 @@ export interface Profile {
   updated_at: string;
 }
 
+/** Shape returned by all four source normalizers — maps directly to the tenders table */
+export interface NormalizedTender {
+  source_id: string;
+  title: string;
+  description: string | null;
+  issuer_name: string;
+  issuer_country: string | null;
+  issuer_region: string | null;
+  cpv_codes: string[];
+  posted_date: string | null;
+  response_deadline: string | null;
+  estimated_value_min: number | null;
+  estimated_value_max: number | null;
+  currency: string;
+  status: TenderStatus;
+  source_url: string;
+  attachments: Attachment[];
+  contacts: Contact[];
+  raw: unknown;
+}
+
 export interface TenderMatch extends Tender {
   match_score: number;
   match_reasons: string[];

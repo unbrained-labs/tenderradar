@@ -5,6 +5,13 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
+const SOURCES = [
+  { id: "simap",  label: "CH", endpoint: "/api/sync" },
+  { id: "ted",    label: "EU", endpoint: "/api/sync/ted" },
+  { id: "fts",    label: "UK", endpoint: "/api/sync/fts" },
+  { id: "sam",    label: "US", endpoint: "/api/sync/sam" },
+];
+
 const NAV_ITEMS = [
   { href: "/",         label: "Feed",    shortcut: "F" },
   { href: "/matches",  label: "Matches", shortcut: "M" },
@@ -16,13 +23,6 @@ export default function Nav() {
   const pathname = usePathname();
   const [syncing, setSyncing] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<string | null>(null);
-
-  const SOURCES = [
-    { id: "simap",  label: "CH",  endpoint: "/api/sync" },
-    { id: "ted",    label: "EU",  endpoint: "/api/sync/ted" },
-    { id: "fts",    label: "UK",  endpoint: "/api/sync/fts" },
-    { id: "sam",    label: "US",  endpoint: "/api/sync/sam" },
-  ];
 
   async function handleSync(sourceId: string, endpoint: string) {
     setSyncing(sourceId);

@@ -37,6 +37,9 @@
  *   - Award Notice (a): contract awards — skip
  */
 
+import { stripHtml, daysAgo } from "@/lib/utils";
+import type { NormalizedTender } from "@/lib/types";
+
 const BASE_URL = process.env.SAM_BASE_URL ?? "https://api.sam.gov/opportunities/v2";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -105,6 +108,12 @@ function formatSamDate(date: Date): string {
   return `${m}/${d}/${y}`;
 }
 
+/** "YYYY-MM-DD HH:mm:ss" → "YYYY-MM-DDTHH:mm:ss" (ISO-compatible, no timezone) */
+function parseSamDate(s: string | null | undefined): string | null {
+  if (!s) return null;
+  return s.replace(" ", "T");
+}
+
 export async function searchSamOpportunities(params: {
   fromDate?: Date;
   toDate?: Date;
@@ -129,8 +138,7 @@ export async function searchSamOpportunities(params: {
     offset = 0,
   } = params;
 
-  const defaultFrom = new Date();
-  defaultFrom.setDate(defaultFrom.getDate() - 30);
+  const defaultFrom = daysAgo(30);
 
   const qs = new URLSearchParams({
     api_key: apiKey,
@@ -161,7 +169,7 @@ export async function searchSamOpportunities(params: {
 
 // ─── Normalizer ───────────────────────────────────────────────────────────────
 
-export function normalizeSamOpportunity(opp: SamOpportunity) {
+export function normalizeSamOpportunity(opp: SamOpportunity): NormalizedTender {
   // Contacts
   const contacts = (opp.pointOfContact ?? [])
     .filter((c) => c.email || c.fullName)
@@ -184,28 +192,18 @@ export function normalizeSamOpportunity(opp: SamOpportunity) {
   const country = opp.placeOfPerformance?.country?.code ?? "US";
 
   // NAICS codes as our CPV proxy (standardize to array)
-  const cpvCodes = [
+  const cpvCodes = [...new Set([
     ...(opp.naicsCode ? [opp.naicsCode] : []),
     ...(opp.naicsCodes ?? []),
-  ].filter((v, i, a) => a.indexOf(v) === i);
+  ])];
 
-  // Source URL
   const sourceUrl = opp.uiLink ?? `https://sam.gov/opp/${opp.noticeId}/view`;
-
-  // Parse dates
-  function parseSamDate(s?: string | null): string | null {
-    if (!s) return null;
-    // "YYYY-MM-DD HH:mm:ss" → "YYYY-MM-DDTHH:mm:ss"
-    return s.replace(" ", "T");
-  }
 
   return {
     source_id: `sam-${opp.noticeId}`,
     title: opp.title?.trim() ?? "Untitled",
-    description: opp.description
-      ? opp.description.replace(/<[^>]+>/g, " ").trim()
-      : null,
-    issuer_name: opp.fullParentPathName?.split(".")?.slice(-1)[0] ?? "US Government",
+    description: stripHtml(opp.description),
+    issuer_name: opp.fullParentPathName?.split(".").at(-1) ?? "US Government",
     issuer_region: state,
     issuer_country: country === "USA" ? "US" : country,
     cpv_codes: cpvCodes,
@@ -231,16 +229,17 @@ export async function fetchAllActiveSamOpportunities(options: {
   maxPages?: number;
   pageSize?: number;
   delayMs?: number;
-}): Promise<ReturnType<typeof normalizeSamOpportunity>[]> {
-  const { maxPages = 20, pageSize = 100, delayMs = 500 } = options;
-
-  const normalized: ReturnType<typeof normalizeSamOpportunity>[] = [];
+}): Promise<NormalizedTender[]> {
+  const { maxPages = 20, pageSize = 100, delayMs = 100 } = options;
+  const normalized: NormalizedTender[] = [];
   let offset = 0;
   let pages = 0;
 
   while (pages < maxPages) {
     const result = await searchSamOpportunities({
-      ...options,
+      fromDate: options.fromDate,
+      naicsCode: options.naicsCode,
+      keyword: options.keyword,
       limit: pageSize,
       offset,
     });

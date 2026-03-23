@@ -23,8 +23,13 @@
  *   - Notice URL: https://www.find-tender.service.gov.uk/Notice/{id}
  */
 
+import { stripHtml, daysAgo } from "@/lib/utils";
+import type { NormalizedTender } from "@/lib/types";
+
 const BASE_URL =
   process.env.FTS_BASE_URL ?? "https://www.find-tender.service.gov.uk/api/1.0";
+
+const CPV_SCHEME = "CPV";
 
 // ─── OCDS types ───────────────────────────────────────────────────────────────
 
@@ -131,7 +136,7 @@ function extractCpvCodes(items?: OcdsItem[]): string[] {
   const codes: string[] = [];
   for (const item of items) {
     for (const cls of item.additionalClassifications ?? []) {
-      if (cls.scheme === "CPV" && cls.id) codes.push(cls.id);
+      if (cls.scheme === CPV_SCHEME && cls.id) codes.push(cls.id);
     }
   }
   return [...new Set(codes)];
@@ -147,7 +152,7 @@ function isActiveTender(release: FtsRelease): boolean {
 
 // ─── Normalizer ───────────────────────────────────────────────────────────────
 
-export function normalizeFtsRelease(release: FtsRelease) {
+export function normalizeFtsRelease(release: FtsRelease): NormalizedTender {
   const tender = release.tender ?? {};
   const parties = release.parties ?? [];
   const buyer = parties.find((p) => p.roles?.includes("buyer"));
@@ -186,9 +191,7 @@ export function normalizeFtsRelease(release: FtsRelease) {
   return {
     source_id: `fts-${release.ocid}`,
     title: (tender.title ?? "Untitled").trim(),
-    description: tender.description
-      ? tender.description.replace(/<[^>]+>/g, " ").trim()
-      : null,
+    description: stripHtml(tender.description),
     issuer_name: buyer?.name ?? release.buyer?.name ?? "Unknown",
     issuer_region: null,
     issuer_country: "GB",
@@ -213,16 +216,10 @@ export async function fetchAllActiveFtsTenders(options: {
   maxPages?: number;
   pageSize?: number;
   delayMs?: number;
-}): Promise<ReturnType<typeof normalizeFtsRelease>[]> {
+}): Promise<NormalizedTender[]> {
   const { maxPages = 20, pageSize = 100, delayMs = 200 } = options;
-
-  const fromDate = options.fromDate ?? (() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 30);
-    return d.toISOString().slice(0, 19);
-  })();
-
-  const normalized: ReturnType<typeof normalizeFtsRelease>[] = [];
+  const fromDate = options.fromDate ?? daysAgo(30).toISOString().slice(0, 19);
+  const normalized: NormalizedTender[] = [];
   let cursor: string | undefined;
   let pages = 0;
 

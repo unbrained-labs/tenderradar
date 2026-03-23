@@ -1,0 +1,16 @@
+"use strict";(()=>{var e={};e.id=442,e.ids=[442],e.modules={399:e=>{e.exports=require("next/dist/compiled/next-server/app-page.runtime.prod.js")},517:e=>{e.exports=require("next/dist/compiled/next-server/app-route.runtime.prod.js")},8048:e=>{e.exports=import("@neondatabase/serverless")},9397:(e,r,a)=>{a.a(e,async(e,t)=>{try{a.r(r),a.d(r,{originalPathname:()=>y,patchFetch:()=>p,requestAsyncStorage:()=>l,routeModule:()=>c,serverHooks:()=>m,staticGenerationAsyncStorage:()=>d});var n=a(1569),o=a(5482),s=a(7807),i=a(2202),u=e([i]);i=(u.then?(await u)():u)[0];let c=new n.AppRouteRouteModule({definition:{kind:o.x.APP_ROUTE,page:"/api/profile/route",pathname:"/api/profile",filename:"route",bundlePath:"app/api/profile/route"},resolvedPagePath:"/Users/dd/repos/locallab/rfp-finder/app/api/profile/route.ts",nextConfigOutput:"standalone",userland:i}),{requestAsyncStorage:l,staticGenerationAsyncStorage:d,serverHooks:m}=c,y="/api/profile/route";function p(){return(0,s.patchFetch)({serverHooks:m,staticGenerationAsyncStorage:d})}t()}catch(e){t(e)}})},2202:(e,r,a)=>{a.a(e,async(e,t)=>{try{a.r(r),a.d(r,{GET:()=>i,PUT:()=>u});var n=a(314),o=a(8209),s=e([o]);async function i(){try{let e=await (0,o.i)`
+      SELECT id, company_name, cpv_codes, cantons, keywords, value_min, value_max, created_at, updated_at
+      FROM profile
+      LIMIT 1
+    `;if(!e.length)return n.NextResponse.json({error:"No profile found"},{status:404});let r=e[0],a={id:String(r.id),company_name:String(r.company_name??""),cpv_codes:Array.isArray(r.cpv_codes)?r.cpv_codes:[],cantons:Array.isArray(r.cantons)?r.cantons:[],keywords:Array.isArray(r.keywords)?r.keywords:[],value_min:null!=r.value_min?Number(r.value_min):null,value_max:null!=r.value_max?Number(r.value_max):null,created_at:String(r.created_at??""),updated_at:String(r.updated_at??"")};return n.NextResponse.json(a)}catch(r){let e=r instanceof Error?r.message:String(r);return n.NextResponse.json({error:e},{status:500})}}async function u(e){try{let{company_name:r,cpv_codes:a=[],cantons:t=[],keywords:s=[],value_min:i=null,value_max:u=null}=await e.json(),p=await (0,o.i)`
+      UPDATE profile
+      SET
+        company_name = ${r??""},
+        cpv_codes    = ${JSON.stringify(a)},
+        cantons      = ${JSON.stringify(t)},
+        keywords     = ${JSON.stringify(s)},
+        value_min    = ${i},
+        value_max    = ${u},
+        updated_at   = NOW()
+      RETURNING id, company_name, cpv_codes, cantons, keywords, value_min, value_max, created_at, updated_at
+    `;return n.NextResponse.json(p[0])}catch(r){let e=r instanceof Error?r.message:String(r);return n.NextResponse.json({error:e},{status:500})}}o=(s.then?(await s)():s)[0],t()}catch(e){t(e)}})},8209:(e,r,a)=>{a.a(e,async(e,t)=>{try{a.d(r,{i:()=>p,l:()=>i});var n=a(8048),o=e([n]);n=(o.then?(await o)():o)[0];let u=null;function s(){if(u)return u;if(!process.env.DATABASE_URL)throw Error("DATABASE_URL environment variable is required. Copy .env.example to .env.local");return u=(0,n.neon)(process.env.DATABASE_URL)}let p=new Proxy({},{apply:(e,r,a)=>s()(...a),get:(e,r)=>s()[r]});async function i(e,r=[]){return await p(e,r)}t()}catch(e){t(e)}})}};var r=require("../../../webpack-runtime.js");r.C(e);var a=e=>r(r.s=e),t=r.X(0,[33,514],()=>a(9397));module.exports=t})();
